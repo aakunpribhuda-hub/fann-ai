@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#090909">
+<title>Fann AI — Asisten AI</title>
+<style>
+:root{color-scheme:dark;--bg:#090909;--panel:#111;--panel2:#171717;--line:#2a2a2a;--text:#f5f5f5;--muted:#a0a0a0;--accent:#e7e7e7}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh}
+.app{max-width:900px;height:100dvh;margin:auto;display:flex;flex-direction:column;padding:0 18px}
+header{height:76px;flex-shrink:0;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line)}
+.logo{width:42px;height:42px;display:grid;place-items:center;background:#f2f2f2;color:#090909;border-radius:13px;font-size:20px;font-weight:850;letter-spacing:-1px}
+.brand{font-size:18px;font-weight:750;letter-spacing:.2px}.tagline{font-size:12px;color:var(--muted)}.online{margin-left:auto;font-size:12px;color:#b5d8bf}.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#79c78e;margin-right:6px}
+#chat{flex:1;overflow:auto;padding:25px 2px;display:flex;flex-direction:column;gap:18px;scroll-behavior:smooth}
+.welcome{margin:auto 0;text-align:center;padding:30px 8px}.spark{font-size:34px;color:#ddd}.welcome h1{font-size:clamp(27px,5vw,39px);letter-spacing:-1.4px;margin:8px 0}.welcome p{max-width:480px;margin:0 auto 23px;color:var(--muted)}
+.suggestions{display:flex;flex-wrap:wrap;justify-content:center;gap:9px}.suggestions button{background:#121212;border:1px solid #303030;color:#ddd;padding:10px 13px;border-radius:12px;cursor:pointer}.suggestions button:hover{background:#202020}
+.message{display:flex;align-items:flex-start;gap:11px;max-width:95%;white-space:pre-wrap;overflow-wrap:anywhere}.message.user{align-self:flex-end;flex-direction:row-reverse}.avatar{width:30px;height:30px;flex:0 0 30px;border-radius:10px;background:#222;display:grid;place-items:center;font-size:12px;font-weight:800}.message.assistant .avatar{background:#eee;color:#111}.bubble{border:1px solid var(--line);background:var(--panel);border-radius:4px 16px 16px 16px;padding:12px 15px;min-width:40px}.user .bubble{background:#202020;border-radius:16px 4px 16px 16px}.bubble p{margin:0 0 10px}.bubble p:last-child{margin-bottom:0}.typing{color:var(--muted);font-style:italic}
+.composer-wrap{padding:10px 0 0;border-top:1px solid var(--line);flex-shrink:0}.composer{display:flex;gap:9px;align-items:flex-end;background:#131313;border:1px solid #343434;border-radius:17px;padding:8px}.composer:focus-within{border-color:#777}.composer textarea{font:inherit;color:var(--text);background:transparent;border:0;outline:0;resize:none;flex:1;min-height:44px;max-height:150px;padding:10px 8px}.send{height:44px;padding:0 17px;border:0;border-radius:12px;background:#f2f2f2;color:#111;font-weight:750;cursor:pointer}.send:disabled{opacity:.45;cursor:default}.foot{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;color:#777;font-size:11px;padding:10px 2px 13px}.clear{border:0;background:none;color:#aaa;text-decoration:underline;cursor:pointer;font:inherit}
+@media(max-width:520px){.app{padding:0 12px}.message{max-width:100%}.online{font-size:0}.dot{font-size:initial}.bubble{padding:11px 12px}.send{padding:0 13px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header><div class="logo">F</div><div><div class="brand">Fann AI</div><div class="tagline">Asisten AI • Elegan dan sederhana</div></div><div class="online"><span class="dot"></span>Siap membantu</div></header>
+<main id="chat" aria-live="polite">
+<section class="welcome" id="welcome"><div class="spark">✦</div><h1>Ada yang bisa kubantu?</h1><p>Tanyakan sesuatu, minta ide, atau bantu menyusun tulisan. Tanyakan apa saja. Hubungkan layanan AI melalui backend untuk mulai mendapatkan jawaban.</p><div class="suggestions"><button data-prompt="Jelaskan kecerdasan buatan dengan bahasa sederhana">Jelaskan tentang AI</button><button data-prompt="Buatkan ide proyek HTML untuk pemula">Ide proyek HTML</button><button data-prompt="Bantu aku membuat rencana belajar">Buat rencana belajar</button></div></section>
+</main>
+<div class="composer-wrap"><form class="composer" id="form"><textarea id="input" rows="1" placeholder="Tanyakan apa saja..." aria-label="Tulis pesan"></textarea><button class="send" id="send" type="submit">Kirim ↑</button></form><div class="foot"><span id="mode">AI • Menunggu koneksi backend</span><button class="clear" id="clear" type="button">Hapus percakapan</button></div></div>
+</div>
+<script>
+/*
+PENGATURAN BACKEND:
+1. Deploy backend sendiri, misalnya Node.js + Express.
+2. Simpan API key penyedia AI di environment variable backend (jangan pernah taruh API key di HTML).
+3. Ubah API_URL di bawah ke alamat endpoint backend milikmu.
+4. Endpoint menerima POST JSON {messages:[{role:"user"|"assistant",content:"..."}]}
+   dan mengembalikan JSON {reply:"jawaban AI"}.
+*/
+const API_URL = "/api/chat"; // Endpoint backend lokal
+const chat=document.getElementById("chat"),input=document.getElementById("input"),form=document.getElementById("form"),send=document.getElementById("send"),mode=document.getElementById("mode");
+const history=[];
+function addMessage(text,role,extraClass=""){const welcome=document.getElementById("welcome");if(welcome)welcome.remove();const row=document.createElement("div");row.className="message "+(role==="user"?"user":"assistant");const avatar=document.createElement("div");avatar.className="avatar";avatar.textContent=role==="user"?"K":"F";const bubble=document.createElement("div");bubble.className="bubble "+extraClass;const p=document.createElement("p");p.textContent=text;bubble.appendChild(p);row.append(avatar,bubble);chat.appendChild(row);chat.scrollTop=chat.scrollHeight;return row}
+function demoReply(text){const t=text.toLowerCase();if(/^(hai|halo|hello|hi)\b/.test(t))return"Halo! Aku Fann AI. Ada yang ingin kamu tanyakan?";if(t.includes("html"))return"HTML adalah bahasa markup untuk menyusun struktur halaman web. Misalnya, <h1>Halo dunia</h1> membuat judul. Untuk AI sungguhan, hubungkan halaman ini ke backend yang memanggil model AI.";if(t.includes("rencana belajar"))return"Mulailah dari tujuan kecil: 1) tentukan topik, 2) belajar 20–30 menit, 3) praktikkan, 4) catat yang belum dipahami, lalu 5) ulangi secara teratur. Ini contoh jawaban demo.";if(t.includes("ai")||t.includes("kecerdasan buatan"))return"AI adalah teknologi yang memungkinkan komputer melakukan tugas seperti memahami bahasa, mengenali pola, dan membantu membuat konten. Ini jawaban demo sederhana, belum dibuat oleh model AI sungguhan.";return"Pesanmu sudah diterima. Fann AI saat ini dalam mode demo, sehingga belum bisa menjawab bebas seperti chatbot AI sungguhan. Sambungkan endpoint backend pada variabel API_URL di file HTML untuk mengaktifkan respons dari model AI."}
+async function sendMessage(text){text=text.trim();if(!text||send.disabled)return;addMessage(text,"user");history.push({role:"user",content:text});input.value="";input.style.height="auto";send.disabled=true;const wait=addMessage("Fann AI sedang berpikir…","assistant","typing");try{let answer;if(!API_URL.trim())throw new Error("Endpoint backend belum diatur.");const response=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:history})});if(!response.ok){let detail="Status "+response.status;try{const errData=await response.json();if(errData.error)detail=errData.error}catch(e){}throw new Error(detail)}const data=await response.json();if(typeof data.reply!=="string")throw new Error("Respons backend tidak berisi teks jawaban.");answer=data.reply;mode.textContent="AI aktif • Terhubung ke backend"wait.remove();addMessage(answer,"assistant");history.push({role:"assistant",content:answer});}catch(err){wait.remove();addMessage("Fann AI belum bisa menjawab karena backend/API belum tersambung atau sedang bermasalah. Periksa server dan pengaturan API. Detail: "+err.message,"assistant");mode.textContent="AI • Koneksi backend bermasalah";history.pop()}finally{send.disabled=false;input.focus()}}
+form.addEventListener("submit",e=>{e.preventDefault();sendMessage(input.value)});input.addEventListener("input",()=>{input.style.height="auto";input.style.height=Math.min(input.scrollHeight,150)+"px"});input.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();form.requestSubmit()}});document.querySelectorAll("[data-prompt]").forEach(b=>b.addEventListener("click",()=>sendMessage(b.dataset.prompt)));document.getElementById("clear").addEventListener("click",()=>{history.length=0;chat.innerHTML='<section class="welcome" id="welcome"><div class="spark">✦</div><h1>Ada yang bisa kubantu?</h1><p>Mulai percakapan baru dengan Fann AI.</p><div class="suggestions"><button data-prompt="Jelaskan kecerdasan buatan dengan bahasa sederhana">Jelaskan tentang AI</button><button data-prompt="Buatkan ide proyek HTML untuk pemula">Ide proyek HTML</button></div></section>';document.querySelectorAll("[data-prompt]").forEach(b=>b.addEventListener("click",()=>sendMessage(b.dataset.prompt)))});
+</script>
+</body>
+</html>
